@@ -1,0 +1,146 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Create Store Requisition - Inventory Management System{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="h3 mb-0 text-gray-800">Create Store Requisition</h1>
+    <a href="{% url 'sr_list' %}" class="btn btn-secondary">
+        <i class="fas fa-arrow-left"></i> Back to List
+    </a>
+</div>
+
+<div class="card shadow mb-4">
+    <div class="card-header py-3">
+        <h6 class="m-0 font-weight-bold text-primary">Store Requisition Form</h6>
+    </div>
+    <div class="card-body">
+        <form method="post" class="needs-validation" novalidate id="dynamic-form-container">
+            {% csrf_token %}
+            
+            <div class="row mb-3">
+                <div class="col-md-6 required-field">
+                    <label for="department" class="form-label">Department</label>
+                    <select name="department" id="department" class="form-select" required>
+                        <option value="">Select Department</option>
+                        {% for dept in departments %}
+                        <option value="{{ dept.id }}" {% if user.department.id == dept.id %}selected{% endif %}>
+                            {{ dept.name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                    <div class="invalid-feedback">
+                        Please select a department.
+                    </div>
+                </div>
+                <div class="col-md-6 required-field">
+                    <label for="delivery_date" class="form-label">Delivery Date</label>
+                    <input type="date" name="delivery_date" id="delivery_date" class="form-control" required
+                           min="{{ today|date:'Y-m-d' }}">
+                    <div class="invalid-feedback">
+                        Please select a valid delivery date.
+                    </div>
+                </div>
+            </div>
+            
+            <hr class="my-4">
+            
+            <h5 class="mb-3">Requested Items</h5>
+            
+            <div id="items-container">
+                <!-- Dynamic item rows will be added here -->
+            </div>
+            
+            <div class="text-center mb-4">
+                <button type="button" id="add-item-row" class="btn btn-success">
+                    <i class="fas fa-plus"></i> Add Item
+                </button>
+            </div>
+            
+            <div class="d-flex justify-content-end">
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-save"></i> Submit Requisition
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Item Row Template (hidden) -->
+<template id="item-row-template">
+    <div class="row mb-3 item-row">
+        <div class="col-md-4 required-field">
+            <label for="items[INDEX][item]" class="form-label">Item</label>
+            <select name="items[INDEX][item]" class="form-select item-select" required>
+                <option value="">Select Item</option>
+                {% for item in items %}
+                <option value="{{ item.id }}" data-uom="{{ item.unit_of_measure.abbreviation }}" 
+                        data-balance="{{ item.current_balance }}">
+                    {{ item.code }} - {{ item.description }}
+                </option>
+                {% endfor %}
+            </select>
+            <div class="invalid-feedback">
+                Please select an item.
+            </div>
+        </div>
+        <div class="col-md-2">
+            <label class="form-label">Unit</label>
+            <div class="form-control-plaintext item-uom"></div>
+        </div>
+        <div class="col-md-2">
+            <label class="form-label">Available</label>
+            <div class="form-control-plaintext item-balance"></div>
+        </div>
+        <div class="col-md-3 required-field">
+            <label for="items[INDEX][quantity]" class="form-label">Quantity</label>
+            <input type="number" name="items[INDEX][quantity]" class="form-control item-quantity" 
+                   min="1" required>
+            <div class="invalid-feedback">
+                Please enter a valid quantity.
+            </div>
+        </div>
+        <div class="col-md-1 d-flex align-items-end">
+            <button type="button" class="btn btn-danger remove-item-row">
+                <i class="fas fa-trash"></i>
+            </button>
+        </div>
+    </div>
+</template>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    $(document).ready(function() {
+        // Initialize first item row
+        $('#add-item-row').click();
+        
+        // Custom validation for item quantity
+        $(document).on('change', '.item-select', function() {
+            const row = $(this).closest('.item-row');
+            const quantityInput = row.find('.item-quantity');
+            const availableBalance = parseInt(row.find('.item-balance').text()) || 0;
+            
+            // Set max attribute based on available balance
+            quantityInput.attr('max', availableBalance);
+            
+            // Add custom validation message
+            quantityInput.get(0).setCustomValidity('');
+            if (parseInt(quantityInput.val()) > availableBalance) {
+                quantityInput.get(0).setCustomValidity('Quantity cannot exceed available balance');
+            }
+        });
+        
+        $(document).on('input', '.item-quantity', function() {
+            const availableBalance = parseInt($(this).closest('.item-row').find('.item-balance').text()) || 0;
+            
+            // Add custom validation message
+            this.setCustomValidity('');
+            if (parseInt(this.value) > availableBalance) {
+                this.setCustomValidity('Quantity cannot exceed available balance');
+            }
+        });
+    });
+</script>
+{% endblock %}

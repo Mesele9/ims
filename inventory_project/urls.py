@@ -1,22 +1,47 @@
-"""
-URL configuration for inventory_project project.
+from django.urls import path, include
+from rest_framework.routers import DefaultRouter
+from inventory.views import (
+    CategoryViewSet, UnitOfMeasureViewSet, ItemViewSet,
+    ItemTransactionViewSet, SupplierViewSet
+)
+from users.views import DepartmentViewSet, UserViewSet
+from store_requisition.views import (
+    StoreRequisitionViewSet, SRItemViewSet,
+    StoreIssueViewSet, SIVItemViewSet
+)
+from purchase_requisition.views import PurchaseRequisitionViewSet, PRItemViewSet
+from goods_receiving.views import GoodsReceivingNoteViewSet, GRNItemViewSet
 
-The `urlpatterns` list routes URLs to views. For more information please see:
-    https://docs.djangoproject.com/en/5.2/topics/http/urls/
-Examples:
-Function views
-    1. Add an import:  from my_app import views
-    2. Add a URL to urlpatterns:  path('', views.home, name='home')
-Class-based views
-    1. Add an import:  from other_app.views import Home
-    2. Add a URL to urlpatterns:  path('', Home.as_view(), name='home')
-Including another URLconf
-    1. Import the include() function: from django.urls import include, path
-    2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
-"""
-from django.contrib import admin
-from django.urls import path
+# Create a router and register our viewsets with it
+router = DefaultRouter()
 
+# Inventory routes
+router.register(r'categories', CategoryViewSet)
+router.register(r'units-of-measure', UnitOfMeasureViewSet)
+router.register(r'items', ItemViewSet)
+router.register(r'item-transactions', ItemTransactionViewSet)
+router.register(r'suppliers', SupplierViewSet)
+
+# User routes
+router.register(r'departments', DepartmentViewSet)
+router.register(r'users', UserViewSet)
+
+# Store requisition routes
+router.register(r'store-requisitions', StoreRequisitionViewSet)
+router.register(r'sr-items', SRItemViewSet)
+router.register(r'store-issues', StoreIssueViewSet)
+router.register(r'siv-items', SIVItemViewSet)
+
+# Purchase requisition routes
+router.register(r'purchase-requisitions', PurchaseRequisitionViewSet)
+router.register(r'pr-items', PRItemViewSet)
+
+# Goods receiving routes
+router.register(r'goods-receiving-notes', GoodsReceivingNoteViewSet)
+router.register(r'grn-items', GRNItemViewSet)
+
+# The API URLs are now determined automatically by the router
 urlpatterns = [
-    path('admin/', admin.site.urls),
+    path('api/', include(router.urls)),
+    path('api-auth/', include('rest_framework.urls')),
 ]

@@ -1,0 +1,158 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Create Purchase Requisition - Inventory Management System{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="h3 mb-0 text-gray-800">Create Purchase Requisition</h1>
+    <a href="{% url 'pr_list' %}" class="btn btn-secondary">
+        <i class="fas fa-arrow-left"></i> Back to List
+    </a>
+</div>
+
+<div class="card shadow mb-4">
+    <div class="card-header py-3">
+        <h6 class="m-0 font-weight-bold text-primary">Purchase Requisition Form</h6>
+    </div>
+    <div class="card-body">
+        <form method="post" class="needs-validation" novalidate id="dynamic-form-container">
+            {% csrf_token %}
+            
+            <div class="row mb-3">
+                <div class="col-md-6 required-field">
+                    <label for="date" class="form-label">Date</label>
+                    <input type="date" name="date" id="date" class="form-control" required
+                           value="{{ today|date:'Y-m-d' }}">
+                    <div class="invalid-feedback">
+                        Please select a date.
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <label for="notes" class="form-label">Notes</label>
+                    <textarea name="notes" id="notes" class="form-control" rows="1"></textarea>
+                </div>
+            </div>
+            
+            <hr class="my-4">
+            
+            <h5 class="mb-3">Requested Items</h5>
+            
+            <div id="items-container">
+                <!-- Dynamic item rows will be added here -->
+            </div>
+            
+            <div class="text-center mb-4">
+                <button type="button" id="add-item-row" class="btn btn-success">
+                    <i class="fas fa-plus"></i> Add Item
+                </button>
+            </div>
+            
+            <div class="row">
+                <div class="col-md-8"></div>
+                <div class="col-md-4">
+                    <div class="card bg-light">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between mb-2">
+                                <h6 class="font-weight-bold">Total Amount:</h6>
+                                <h6 class="font-weight-bold">$<span id="grand-total">0.00</span></h6>
+                            </div>
+                            <div class="text-muted small">
+                                <i class="fas fa-info-circle"></i> Estimated total based on current prices
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="d-flex justify-content-end mt-4">
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-save"></i> Submit for Approval
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Item Row Template (hidden) -->
+<template id="item-row-template">
+    <div class="row mb-3 item-row">
+        <div class="col-md-4 required-field">
+            <label for="items[INDEX][item]" class="form-label">Item</label>
+            <select name="items[INDEX][item]" class="form-select item-select" required>
+                <option value="">Select Item</option>
+                {% for item in items %}
+                <option value="{{ item.id }}" data-uom="{{ item.unit_of_measure.abbreviation }}" 
+                        data-price="{{ item.current_price }}">
+                    {{ item.code }} - {{ item.description }}
+                </option>
+                {% endfor %}
+            </select>
+            <div class="invalid-feedback">
+                Please select an item.
+            </div>
+        </div>
+        <div class="col-md-2">
+            <label class="form-label">Unit</label>
+            <div class="form-control-plaintext item-uom"></div>
+        </div>
+        <div class="col-md-2 required-field">
+            <label for="items[INDEX][quantity]" class="form-label">Quantity</label>
+            <input type="number" name="items[INDEX][quantity]" class="form-control item-quantity" 
+                   min="1" required>
+            <div class="invalid-feedback">
+                Please enter a valid quantity.
+            </div>
+        </div>
+        <div class="col-md-2">
+            <label for="items[INDEX][unit_price]" class="form-label">Unit Price</label>
+            <div class="input-group">
+                <span class="input-group-text">$</span>
+                <input type="number" name="items[INDEX][unit_price]" class="form-control item-price" 
+                       min="0" step="0.01">
+            </div>
+        </div>
+        <div class="col-md-1">
+            <label class="form-label">Total</label>
+            <div class="input-group">
+                <span class="input-group-text">$</span>
+                <input type="text" class="form-control item-total" readonly>
+            </div>
+        </div>
+        <div class="col-md-1 d-flex align-items-end">
+            <button type="button" class="btn btn-danger remove-item-row">
+                <i class="fas fa-trash"></i>
+            </button>
+        </div>
+    </div>
+</template>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    $(document).ready(function() {
+        // Initialize first item row
+        $('#add-item-row').click();
+        
+        // If item ID is in URL (from low stock alert), auto-select it
+        const urlParams = new URLSearchParams(window.location.search);
+        const itemId = urlParams.get('item_id');
+        
+        if (itemId) {
+            setTimeout(function() {
+                const itemSelect = $('.item-select').first();
+                itemSelect.val(itemId).trigger('change');
+                
+                // Set a reasonable default quantity
+                const row = itemSelect.closest('.item-row');
+                const minStock = parseInt(row.find('option:selected').data('min-stock')) || 10;
+                const currentStock = parseInt(row.find('option:selected').data('current-stock')) || 0;
+                const suggestedQty = Math.max(minStock - currentStock, 1);
+                
+                row.find('.item-quantity').val(suggestedQty);
+                updateRowTotal(row);
+            }, 100);
+        }
+    });
+</script>
+{% endblock %}
